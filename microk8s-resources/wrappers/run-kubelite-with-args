@@ -13,6 +13,21 @@ source $SNAP/actions/common/utils.sh
 
 app=kubelite
 
+
+prepare_service_config() {
+  # prepare the service config file using the respective tempate file
+  local service="$1"
+
+  if [ -e "${SNAP_DATA}/args/config-templates/$1-config" ]
+  then
+    sed 's@${SNAP}@'"${SNAP}"'@g;s@${SNAP_DATA}@'"${SNAP_DATA}"'@g;s@${SNAP_COMMON}@'"${SNAP_COMMON}"'@g' ${SNAP_DATA}/args/config-templates/$1-config > ${SNAP_DATA}/args/$1-config
+    echo "0"
+  else
+    echo "1"
+  fi
+}
+
+
 if ! [ -e ${SNAP_DATA}/var/lock/lite.lock ]
 then
   echo "${app} will not run"
@@ -109,6 +124,11 @@ then
   ls -l /var/lib/kubelet
 else
   echo "\`/var/lib/kubelet\` already exists. CSI add-ons have to point to $SNAP_COMMON for kubelet."
+fi
+
+if prepare_service_config kubelet
+then
+  refresh_opt_in_local_config "config" "$SNAP_DATA/args/kubelet-config" kubelet
 fi
 
 ## Kube-proxy configuration
