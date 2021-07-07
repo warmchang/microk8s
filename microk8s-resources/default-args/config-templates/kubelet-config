@@ -2,7 +2,7 @@ kind: KubeletConfiguration
 apiVersion: kubelet.config.k8s.io/v1beta1
 
 authentication:
-  x509":
+  x509:
     clientCAFile: "${SNAP_DATA}/certs/ca.crt"
   webhook:
     enabled: true
