@@ -239,15 +239,17 @@ def perform_local_op(local_op):
         )
         local_op["callback"] = token.rstrip()
         # TODO: handle ssl verification
+        # TODO: make port configurable
+        node_ep = "{}:{}".format("127.0.0.1", "25000")
         res = requests.post(
-            "https://{}/{}/configure".format("127.0.0.1", CLUSTER_API),
+            "https://{}/{}/configure".format(node_ep, CLUSTER_API),
             json=local_op,
             verify=False,
         )
         if res.status_code != 200:
             print(
                 "Failed to perform a {} on node {} {}".format(
-                    local_op["action_str"], "127.0.0.1", res.status_code
+                    local_op["action_str"], node_ep, res.status_code
                 )
             )
     except subprocess.CalledProcessError as e:
