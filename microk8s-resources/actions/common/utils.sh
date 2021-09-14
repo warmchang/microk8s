@@ -105,16 +105,16 @@ refresh_opt_in_local_config() {
 refresh_opt_in_config() {
     # add or replace an option inside the config file and propagate change.
     # Create the file if doesn't exist
-    refresh_opt_in_local_config "$1" "$2" "$3"
 
     local opt="--$1"
     local value="$2"
     local config_file="$SNAP_DATA/args/$3"
     local replace_line="$opt=$value"
+    "$SNAP/usr/bin/python3" "$SNAP/scripts/cluster/agent_client.py" local_update_argument "$3" "$opt" "$value"
 
     if [ -e "${SNAP_DATA}/var/lock/ha-cluster" ]
     then
-        "$SNAP/usr/bin/python3" "$SNAP/scripts/cluster/distributed_op.py" update_argument "$3" "$opt" "$value"
+        "$SNAP/usr/bin/python3" "$SNAP/scripts/cluster/agent_client.py" update_argument "$3" "$opt" "$value"
     fi
 
     if [ -e "${SNAP_DATA}/credentials/callback-tokens.txt" ]
@@ -122,7 +122,7 @@ refresh_opt_in_config() {
         tokens=$("$SNAP/bin/cat" "${SNAP_DATA}/credentials/callback-tokens.txt" | "$SNAP/usr/bin/wc" -l)
         if [[ "$tokens" -ge "0" ]]
         then
-            "$SNAP/usr/bin/python3" "$SNAP/scripts/cluster/distributed_op.py" update_argument "$3" "$opt" "$value"
+            "$SNAP/usr/bin/python3" "$SNAP/scripts/cluster/agent_client.py" update_argument "$3" "$opt" "$value"
         fi
     fi
 }
@@ -136,7 +136,7 @@ nodes_addon() {
 
     if [ -e "${SNAP_DATA}/var/lock/ha-cluster" ]
     then
-        "$SNAP/usr/bin/python3" "$SNAP/scripts/cluster/distributed_op.py" set_addon "$addon" "$state"
+        "$SNAP/usr/bin/python3" "$SNAP/scripts/cluster/agent_client.py" set_addon "$addon" "$state"
     fi
 
     if [ -e "${SNAP_DATA}/credentials/callback-tokens.txt" ]
@@ -144,7 +144,7 @@ nodes_addon() {
         tokens=$("$SNAP/bin/cat" "${SNAP_DATA}/credentials/callback-tokens.txt" | "$SNAP/usr/bin/wc" -l)
         if [[ "$tokens" -ge "0" ]]
         then
-            "$SNAP/usr/bin/python3" "$SNAP/scripts/cluster/distributed_op.py" set_addon "$addon" "$state"
+            "$SNAP/usr/bin/python3" "$SNAP/scripts/cluster/agent_client.py" set_addon "$addon" "$state"
         fi
     fi
 }
@@ -156,11 +156,11 @@ skip_opt_in_config() {
     # argument $2 is the configuration file under $SNAP_DATA/args
     local opt="--$1"
     local config_file="$SNAP_DATA/args/$2"
-    "${SNAP}/bin/sed" -i '/'"$opt"'/d' "${config_file}"
+    "$SNAP/usr/bin/python3" "$SNAP/scripts/cluster/agent_client.py" local_remove_argument "$2" "$opt"
 
     if [ -e "${SNAP_DATA}/var/lock/ha-cluster" ]
     then
-        "$SNAP/usr/bin/python3" "$SNAP/scripts/cluster/distributed_op.py" remove_argument "$2" "$opt"
+        "$SNAP/usr/bin/python3" "$SNAP/scripts/cluster/agent_client.py" remove_argument "$2" "$opt"
     fi
 
     if [ -e "${SNAP_DATA}/credentials/callback-tokens.txt" ]
@@ -168,7 +168,7 @@ skip_opt_in_config() {
         tokens=$("$SNAP/bin/cat" "${SNAP_DATA}/credentials/callback-tokens.txt" | "$SNAP/usr/bin/wc" -l)
         if [[ "$tokens" -ge "0" ]]
         then
-            "$SNAP/usr/bin/python3" "$SNAP/scripts/cluster/distributed_op.py" remove_argument "$2" "$opt"
+            "$SNAP/usr/bin/python3" "$SNAP/scripts/cluster/agent_client.py" remove_argument "$2" "$opt"
         fi
     fi
 }
@@ -178,11 +178,11 @@ restart_service() {
     # restart a systemd service
     # argument $1 is the service name
 
-    "$SNAP/usr/bin/python3" "$SNAP/scripts/cluster/distributed_op.py" local_restart "$1"
+    "$SNAP/usr/bin/python3" "$SNAP/scripts/cluster/agent_client.py" local_restart "$1"
 
     if [ -e "${SNAP_DATA}/var/lock/ha-cluster" ]
     then
-        "$SNAP/usr/bin/python3" "$SNAP/scripts/cluster/distributed_op.py" restart "$1"
+        "$SNAP/usr/bin/python3" "$SNAP/scripts/cluster/agent_client.py" restart "$1"
     fi
 
     if [ -e "${SNAP_DATA}/credentials/callback-tokens.txt" ]
@@ -190,7 +190,7 @@ restart_service() {
         tokens=$("$SNAP/bin/cat" "${SNAP_DATA}/credentials/callback-tokens.txt" | "$SNAP/usr/bin/wc" -l)
         if [[ "$tokens" -ge "0" ]]
         then
-            "$SNAP/usr/bin/python3" "$SNAP/scripts/cluster/distributed_op.py" restart "$1"
+            "$SNAP/usr/bin/python3" "$SNAP/scripts/cluster/agent_client.py" restart "$1"
         fi
     fi
 }

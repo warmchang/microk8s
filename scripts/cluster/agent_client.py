@@ -24,7 +24,7 @@ callback_tokens_file = "{}/credentials/callback-tokens.txt".format(snapdata_path
 callback_token_file = "{}/credentials/callback-token.txt".format(snapdata_path)
 
 
-def do_op(remote_op):
+def perform_remote_op(remote_op):
     """
     Perform an operation on a remote node
 
@@ -112,7 +112,7 @@ def restart(service):
         "action_str": "restart {}".format(service),
         "service": [{"name": service, "restart": "yes"}],
     }
-    do_op(remote_op)
+    perform_remote_op(remote_op)
 
 
 def update_argument(service, key, value):
@@ -128,7 +128,7 @@ def update_argument(service, key, value):
         "action_str": "change of argument {} to {}".format(key, value),
         "service": [{"name": service, "arguments_update": [{key: value}]}],
     }
-    do_op(remote_op)
+    perform_remote_op(remote_op)
 
 
 def remove_argument(service, key):
@@ -143,7 +143,7 @@ def remove_argument(service, key):
         "action_str": "removal of argument {}".format(key),
         "service": [{"name": service, "arguments_remove": [key]}],
     }
-    do_op(remote_op)
+    perform_remote_op(remote_op)
 
 
 def set_addon(addon, state):
@@ -163,12 +163,32 @@ def set_addon(addon, state):
             "action_str": "set of {} to {}".format(addon, state),
             "addon": [{"name": addon, state: "true"}],
         }
-        do_op(remote_op)
+        perform_remote_op(remote_op)
+
+
+def local_set_addon(addon, state):
+    """
+    Enable or disable an add-on localhost
+
+    :param addon: the add-on name
+    :param state: 'enable' or 'disable'
+    """
+    if state not in ("enable", "disable"):
+        raise ValueError(
+            "Wrong value '{}' for state. Must be one of 'enable' or 'disable'".format(state)
+        )
+    else:
+        print("Setting add-on {} to {} on localhost.".format(addon, state))
+        local_op = {
+            "action_str": "set of {} to {}".format(addon, state),
+            "addon": [{"name": addon, state: "true"}],
+        }
+        perform_local_op(local_op)
 
 
 def local_restart(service_name):
     """
-    Perform an operation on a remote node
+    Perform an operation on localhost
 
     :param service_name: the local service to restart
     """
@@ -176,6 +196,41 @@ def local_restart(service_name):
         "action_str": "restart {}".format(service_name),
         "service": [{"name": service_name, "restart": "yes"}],
     }
+    perform_local_op(local_op)
+
+
+def local_update_argument(service, key, value):
+    """
+    Configure an argument on localhost
+
+    :param service: the service we configure
+    :param key: the argument we configure
+    :param value: the value we set
+    """
+    print("Adding argument {} to localhost.".format(key))
+    local_op = {
+        "action_str": "change of argument {} to {}".format(key, value),
+        "service": [{"name": service, "arguments_update": [{key: value}]}],
+    }
+    perform_local_op(local_op)
+
+
+def local_remove_argument(service, key):
+    """
+    Drop an argument from localhost
+
+    :param service: the service we configure
+    :param key: the argument we configure
+    """
+    print("Removing argument {} from localhost.".format(key))
+    local_op = {
+        "action_str": "removal of argument {}".format(key),
+        "service": [{"name": service, "arguments_remove": [key]}],
+    }
+    perform_local_op(local_op)
+
+
+def perform_local_op(local_op):
     try:
         token = get_callback_token()
 
@@ -204,9 +259,11 @@ def local_restart(service_name):
 
 
 def usage():
-    print("usage: distributed_op [OPERATION] [SERVICE] (ARGUMENT) (value)")
+    print("usage: agent_client [OPERATION] [SERVICE] (ARGUMENT) (value)")
     print("OPERATION is one of local_restart, restart, "
-          "update_argument, remove_argument, set_addon")
+          "local_update_argument, update_argument, "
+          "local_remove_argument, remove_argument, "
+          "local_set_addon, set_addon")
 
 
 if __name__ == "__main__":
@@ -227,16 +284,22 @@ if __name__ == "__main__":
     operation = args[0]
     service = args[1]
 
-    if operation == "local_restart":
-        local_restart(service)
+    if operation.startswith("local_"):
+        if operation == "local_restart":
+            local_restart(service)
+        if operation == "local_update_argument":
+            local_update_argument(service, args[2], args[3])
+        if operation == "local_remove_argument":
+            local_remove_argument(service, args[2])
+        if operation == "local_set_addon":
+            local_set_addon(service, args[2])
     else:
-        if is_node_running_dqlite() and not os.path.isfile(callback_token_file)\
-                and operation != "local_restart":
+        if is_node_running_dqlite() and not os.path.isfile(callback_token_file):
             exit(0)
-        if not is_node_running_dqlite() and not os.path.isfile(callback_tokens_file)\
-                and operation != "local_restart":
+        if not is_node_running_dqlite() and not os.path.isfile(callback_tokens_file):
             print("No callback tokens file.")
             exit(1)
+
         if operation == "restart":
             restart(service)
         if operation == "update_argument":
