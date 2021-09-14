@@ -13,6 +13,7 @@ from common.utils import (
     is_node_running_dqlite,
     get_internal_ip_from_get_node,
     is_same_server,
+    get_callback_token,
 )
 
 urllib3.disable_warnings(urllib3.exceptions.InsecureRequestWarning)
@@ -165,20 +166,50 @@ def set_addon(addon, state):
         do_op(remote_op)
 
 
+def local_restart(service_name):
+    """
+    Perform an operation on a remote node
+
+    :param service_name: the local service to restart
+    """
+    local_op = {
+        "action_str": "restart {}".format(service_name),
+        "service": [{"name": service_name, "restart": "yes"}],
+    }
+    try:
+        token = get_callback_token()
+
+        subprocess.check_output(
+            "{}/microk8s-status.wrapper --wait-ready --timeout=60".format(snap_path).split()
+        )
+        local_op["callback"] = token.rstrip()
+        # TODO: handle ssl verification
+        res = requests.post(
+            "https://{}/{}/configure".format("127.0.0.1", CLUSTER_API),
+            json=local_op,
+            verify=False,
+        )
+        if res.status_code != 200:
+            print(
+                "Failed to perform a {} on node {} {}".format(
+                    local_op["action_str"], "127.0.0.1", res.status_code
+                )
+            )
+    except subprocess.CalledProcessError as e:
+        print("Could not query node status")
+        raise SystemExit(e)
+    except requests.exceptions.RequestException as e:
+        print("Failed to reach localhost.")
+        raise SystemExit(e)
+
+
 def usage():
-    print("usage: dist_refresh_opt [OPERATION] [SERVICE] (ARGUMENT) (value)")
-    print("OPERATION is one of restart, update_argument, remove_argument, set_addon")
+    print("usage: distributed_op [OPERATION] [SERVICE] (ARGUMENT) (value)")
+    print("OPERATION is one of local_restart, restart, "
+          "update_argument, remove_argument, set_addon")
 
 
 if __name__ == "__main__":
-    if is_node_running_dqlite() and not os.path.isfile(callback_token_file):
-        # print("Single node cluster.")
-        exit(0)
-
-    if not is_node_running_dqlite() and not os.path.isfile(callback_tokens_file):
-        print("No callback tokens file.")
-        exit(1)
-
     try:
         opts, args = getopt.getopt(sys.argv[1:], "h", ["help"])
     except getopt.GetoptError as err:
@@ -195,12 +226,24 @@ if __name__ == "__main__":
 
     operation = args[0]
     service = args[1]
-    if operation == "restart":
-        restart(service)
-    if operation == "update_argument":
-        update_argument(service, args[2], args[3])
-    if operation == "remove_argument":
-        remove_argument(service, args[2])
-    if operation == "set_addon":
-        set_addon(service, args[2])
+
+    if operation == "local_restart":
+        local_restart(service)
+    else:
+        if is_node_running_dqlite() and not os.path.isfile(callback_token_file)\
+                and operation != "local_restart":
+            exit(0)
+        if not is_node_running_dqlite() and not os.path.isfile(callback_tokens_file)\
+                and operation != "local_restart":
+            print("No callback tokens file.")
+            exit(1)
+        if operation == "restart":
+            restart(service)
+        if operation == "update_argument":
+            update_argument(service, args[2], args[3])
+        if operation == "remove_argument":
+            remove_argument(service, args[2])
+        if operation == "set_addon":
+            set_addon(service, args[2])
+
     exit(0)

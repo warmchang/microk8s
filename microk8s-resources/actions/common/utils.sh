@@ -178,17 +178,7 @@ restart_service() {
     # restart a systemd service
     # argument $1 is the service name
 
-    if [ "$1" == "apiserver" ] || [ "$1" == "proxy" ] || [ "$1" == "kubelet" ] || [ "$1" == "scheduler" ] || [ "$1" == "controller-manager" ]
-    then
-      if [ -e "${SNAP_DATA}/var/lock/lite.lock" ]
-      then
-        snapctl restart "microk8s.daemon-kubelite"
-      else
-        snapctl restart "microk8s.daemon-$1"
-      fi
-    else
-      snapctl restart "microk8s.daemon-$1"
-    fi
+    "$SNAP/usr/bin/python3" "$SNAP/scripts/cluster/distributed_op.py" local_restart "$1"
 
     if [ -e "${SNAP_DATA}/var/lock/ha-cluster" ]
     then
