@@ -42,6 +42,15 @@ dqlite_default_port = 19001
 default_listen_interface = "0.0.0.0"
 
 
+def setup():
+    """
+    Initialize the cluster agent
+    """
+    get_callback_token()
+
+setup()
+
+
 def get_service_name(service):
     """
     Returns the service name from its configuration file name.
