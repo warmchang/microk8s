@@ -170,7 +170,7 @@ def is_same_server(hostname, ip):
         hname, _, _ = socket.gethostbyaddr(ip)
         if hname == hostname:
             return True
-        fqdn, _, _ = socket.getfqdn(hostname)
+        fqdn = socket.getfqdn(hostname)
         if fqdn == hname:
             return True
     except socket.error:
