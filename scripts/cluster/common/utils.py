@@ -170,6 +170,9 @@ def is_same_server(hostname, ip):
         hname, _, _ = socket.gethostbyaddr(ip)
         if hname == hostname:
             return True
+        fqdn, _, _ = socket.getfqdn(hostname)
+        if fqdn == hname:
+            return True
     except socket.error:
         # Ignore any unresolvable IP by host, surely this is not from the same node.
         pass

@@ -46,6 +46,7 @@ def setup():
     """
     Initialize the cluster agent
     """
+    # Create the callback token
     get_callback_token()
 
 setup()
