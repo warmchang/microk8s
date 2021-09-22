@@ -73,6 +73,7 @@ class TestUpgrade(object):
         except CalledProcessError:
             print("Will not test storage")
 
+        """
         try:
             enable = microk8s_enable("ingress")
             assert "Nothing to do for" not in enable
@@ -80,6 +81,7 @@ class TestUpgrade(object):
             test_matrix["ingress"] = validate_ingress
         except CalledProcessError:
             print("Will not test ingress")
+        """
 
         try:
             enable = microk8s_enable("gpu")
@@ -103,6 +105,7 @@ class TestUpgrade(object):
         except CalledProcessError:
             print("Will not test port forward")
 
+        """
         try:
             enable = microk8s_enable("metrics-server")
             assert "Nothing to do for" not in enable
@@ -110,6 +113,7 @@ class TestUpgrade(object):
             test_matrix["metrics_server"] = validate_metrics_server
         except CalledProcessError:
             print("Will not test the metrics server")
+        """
 
         # AMD64 only tests
         if platform.machine() == "x86_64" and under_time_pressure == "False":
