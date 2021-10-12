@@ -39,7 +39,7 @@ apps:
     command: apiservice-kicker
     daemon: simple
   daemon-control-plane-kicker:
-    command: run-null-daemon
+    command: control-plane-kicker
     daemon: simple
   daemon-cluster-agent:
     command: run-cluster-agent-with-args
@@ -210,8 +210,10 @@ parts:
         rm -rf k8s-dqlite
         git clone https://github.com/canonical/k8s-dqlite
         cd k8s-dqlite
-        git checkout tags/"${K8S_DQLITE_TAG}" -b build
-        go build  -tags libsqlite3,dqlite .
+        #git checkout tags/"${K8S_DQLITE_TAG}" -b build
+        git checkout backoff-retry
+        git checkout -b build
+        go build -tags libsqlite3,dqlite .
         cd ..
       )
       mkdir -p $SNAPCRAFT_PART_INSTALL/bin

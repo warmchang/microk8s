@@ -2,6 +2,7 @@ import getpass
 import json
 import os
 import platform
+import shutil
 import subprocess
 import sys
 import time
@@ -298,3 +299,76 @@ def xable(action: str, addons: list, xabled_addons: list):
             sys.exit(p.returncode)
 
         wait_for_ready(timeout=30)
+
+
+def get_argument(service, argument):
+    """
+    What is the argument value of a service
+
+    :param service: the service name
+    :param argument: the argument to search for
+
+    :return: argument value
+    """
+    value = None
+    snapdata_path = os.environ.get("SNAP_DATA")
+    filename = "{}/args/{}".format(snapdata_path, service)
+    with open(filename) as fp:
+        for _, line in enumerate(fp):
+            if line.startswith("--{}".format(argument)):
+                port_parse = line.split(" ")
+                port_parse = port_parse[-1].split("=")
+                if len(port_parse) > 1:
+                    value = port_parse[1].rstrip()
+    return value
+
+
+def set_argument(service, argument, value):
+    """
+    Set an argument to a service
+
+    :param service: the service name
+    :param argument: the argument to search for
+    :param value: the argument to search for
+    """
+    snapdata_path = os.environ.get("SNAP_DATA")
+    filename = "{}/args/{}".format(snapdata_path, service)
+    backup_file = "{}.backup".format(filename)
+    line_to_add = "--{}={}".format(argument, value)
+
+    with open(backup_file, "w") as back_fp:
+        with open(filename, "r") as fp:
+            for _, line in enumerate(fp):
+                if line.startswith("--{}".format(argument)):
+                    continue
+                back_fp.write("{}".format(line))
+            back_fp.write("{}\n".format(line_to_add))
+
+    try_set_file_permissions(backup_file)
+    shutil.move(backup_file, filename)
+
+
+def try_set_file_permissions(file):
+    """
+    Try setting the ownership group and permission of the file
+
+    :param file: full path and filename
+    """
+
+    os.chmod(file, 0o660)
+    try:
+        shutil.chown(file, group="microk8s")
+    except LookupError:
+        # not setting the group means only the current user can access the file
+        pass
+
+
+def is_kubelite():
+    """
+    Do we run kubelite?
+    """
+    snap_data = os.environ.get("SNAP_DATA")
+    if not snap_data:
+        snap_data = "/var/snap/microk8s/current/"
+    kubelite_lock = "{}/var/lock/lite.lock".format(snap_data)
+    return os.path.exists(kubelite_lock)
